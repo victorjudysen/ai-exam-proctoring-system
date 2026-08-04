@@ -586,6 +586,9 @@ def list_exam_students(exam_id):
         .order_by(User.full_name.asc())
         .all()
     )
+    total_marks = db.session.query(
+        db.func.coalesce(db.func.sum(Question.marks), 0)
+    ).filter(Question.exam_id == exam_id).scalar()
 
     return jsonify(
         {
@@ -598,6 +601,7 @@ def list_exam_students(exam_id):
                     "session_id": session.session_id,
                     "session_status": session.session_status,
                     "score": float(session.score) if session.score is not None else None,
+                    "total_marks": int(total_marks),
                     "warning_count": session.warning_count or 0,
                 }
                 for session, user in rows

@@ -48,10 +48,34 @@ type MyReportRow = {
   exam_title: string
   course_code: string
   score?: number | null
+  total_marks: number
   warning_count: number
   risk_level: string
   total_anomalies: number
+  gaze_away_count: number
+  head_turned_count: number
+  tab_switch_count: number
+  face_absent_count: number
+  multiple_faces_count: number
+  identity_mismatch_count: number
   session_status: string
+}
+
+const ANOMALY_TYPE_LABELS: { key: keyof MyReportRow; label: string }[] = [
+  { key: "gaze_away_count", label: "Gaze" },
+  { key: "head_turned_count", label: "Head Turn" },
+  { key: "face_absent_count", label: "Face Missing" },
+  { key: "multiple_faces_count", label: "Multiple Faces" },
+  { key: "tab_switch_count", label: "Tab Switch" },
+  { key: "identity_mismatch_count", label: "Identity Mismatch" },
+]
+
+function formatAnomalyBreakdown(row: MyReportRow): string {
+  const parts = ANOMALY_TYPE_LABELS
+    .map(({ key, label }) => ({ label, count: row[key] as number }))
+    .filter((entry) => entry.count > 0)
+    .map((entry) => `${entry.label} ×${entry.count}`)
+  return parts.length > 0 ? parts.join(", ") : "None"
 }
 
 const FALLBACK_DEGREE_PROGRAM_OPTIONS = [
@@ -539,7 +563,7 @@ function StudentDashboardInner() {
       ) : null}
 
       {tab === "sessions" ? (
-        <DashboardPanel title="Sessions & Reports">
+        <DashboardPanel title="Sessions & Reports" subtitle="Warnings is the total flagged count (including any lecturer-sent warning); Anomalies breaks down what was actually detected.">
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-sm">
               <thead>
@@ -559,10 +583,10 @@ function StudentDashboardInner() {
                     <td className="py-2 pl-3">{r.exam_title}</td>
                     <td>{r.course_code}</td>
                     <td><StatusBadge value={r.session_status} /></td>
-                    <td>{r.score ?? "-"}</td>
+                    <td>{r.score != null ? `${r.score}/${r.total_marks}` : "-"}</td>
                     <td>{r.warning_count}</td>
                     <td><StatusBadge value={r.risk_level} /></td>
-                    <td>{r.total_anomalies}</td>
+                    <td className="max-w-[220px] text-xs text-muted-foreground">{formatAnomalyBreakdown(r)}</td>
                   </tr>
                 ))}
                 {reports.length === 0 ? <tr><td colSpan={7} className="py-3 pl-3 text-muted-foreground">No sessions yet.</td></tr> : null}

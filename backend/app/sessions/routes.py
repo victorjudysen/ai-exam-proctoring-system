@@ -659,6 +659,17 @@ def list_sessions():
         return jsonify({"error": {"message": "Forbidden"}}), 403
     sessions = sessions.all()
 
+    exam_ids = {exam.exam_id for _, exam, _ in sessions}
+    total_marks_by_exam = {}
+    if exam_ids:
+        for exam_id, total in (
+            db.session.query(Question.exam_id, db.func.coalesce(db.func.sum(Question.marks), 0))
+            .filter(Question.exam_id.in_(exam_ids))
+            .group_by(Question.exam_id)
+            .all()
+        ):
+            total_marks_by_exam[exam_id] = int(total)
+
     payload = []
     for session, exam, student in sessions:
         if session.warning_count >= 3:
@@ -680,6 +691,7 @@ def list_sessions():
                 "scheduled_at": exam.scheduled_at.isoformat() if exam.scheduled_at else None,
                 "session_status": session.session_status,
                 "score": float(session.score) if session.score is not None else None,
+                "total_marks": total_marks_by_exam.get(exam.exam_id, 0),
                 "warning_count": session.warning_count,
                 "risk_level": risk_level,
             }
