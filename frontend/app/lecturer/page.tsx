@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { AlertTriangle, Eye, EyeOff, KeyRound, LogOut, ShieldAlert, Users, X } from "lucide-react"
+import { AlertTriangle, BookOpenCheck, ClipboardList, Eye, EyeOff, FileQuestion, KeyRound, LogOut, ShieldAlert, UserCircle2, Users, X } from "lucide-react"
 import Link from "next/link"
 import { io } from "socket.io-client"
 import { getApiPath, getSocketConnection } from "@/lib/api-url"
@@ -69,6 +69,7 @@ type StudentRow = {
   email: string
   session_status: string
   score?: number | null
+  total_marks: number
   warning_count: number
 }
 
@@ -82,6 +83,7 @@ type SessionResultRow = {
   course_code: string
   session_status: string
   score?: number | null
+  total_marks: number
   warning_count: number
   risk_level: string
 }
@@ -117,9 +119,11 @@ type ReportDetail = {
   tab_switch_count: number
   face_absent_count: number
   multiple_faces_count: number
+  identity_mismatch_count: number
   total_anomalies: number
   risk_level: string
   score?: number | null
+  total_marks: number
   warning_count?: number
   session_status?: string
   logs: ReportLogEntry[]
@@ -964,6 +968,7 @@ function LecturerDashboardInner() {
       "exam_title",
       "status",
       "score",
+      "total_marks",
       "warning_count",
       "risk_level",
     ]
@@ -975,6 +980,7 @@ function LecturerDashboardInner() {
       row.exam_title,
       row.session_status,
       row.score ?? "",
+      row.total_marks,
       row.warning_count,
       row.risk_level,
     ])
@@ -1219,23 +1225,28 @@ function LecturerDashboardInner() {
         <DashboardPanel title="Quick Shortcuts" subtitle="Move quickly between lecturer workflows.">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <Link href="/lecturer?tab=exams" className="rounded-xl border border-border bg-gradient-to-br from-blue-50 to-indigo-50 p-4 transition hover:shadow-md dark:from-slate-900 dark:to-slate-800">
-              <p className="text-sm font-semibold text-foreground">Exams</p>
+              <BookOpenCheck className="h-5 w-5 text-[#1a2d5a]" />
+              <p className="mt-2 text-sm font-semibold text-foreground">Exams</p>
               <p className="mt-1 text-xs text-muted-foreground">Create and manage exams.</p>
             </Link>
             <Link href="/lecturer?tab=questions" className="rounded-xl border border-border bg-gradient-to-br from-emerald-50 to-teal-50 p-4 transition hover:shadow-md dark:from-slate-900 dark:to-slate-800">
-              <p className="text-sm font-semibold text-foreground">Questions</p>
+              <FileQuestion className="h-5 w-5 text-emerald-700" />
+              <p className="mt-2 text-sm font-semibold text-foreground">Questions</p>
               <p className="mt-1 text-xs text-muted-foreground">Build question banks.</p>
             </Link>
             <Link href="/lecturer?tab=students" className="rounded-xl border border-border bg-gradient-to-br from-amber-50 to-orange-50 p-4 transition hover:shadow-md dark:from-slate-900 dark:to-slate-800">
-              <p className="text-sm font-semibold text-foreground">Students</p>
+              <Users className="h-5 w-5 text-amber-700" />
+              <p className="mt-2 text-sm font-semibold text-foreground">Students</p>
               <p className="mt-1 text-xs text-muted-foreground">View enrolled students.</p>
             </Link>
             <Link href="/lecturer?tab=results" className="rounded-xl border border-border bg-gradient-to-br from-violet-50 to-fuchsia-50 p-4 transition hover:shadow-md dark:from-slate-900 dark:to-slate-800">
-              <p className="text-sm font-semibold text-foreground">Sessions & Reports</p>
+              <ClipboardList className="h-5 w-5 text-violet-700" />
+              <p className="mt-2 text-sm font-semibold text-foreground">Sessions & Reports</p>
               <p className="mt-1 text-xs text-muted-foreground">Inspect outcomes and risk.</p>
             </Link>
             <Link href="/lecturer?tab=profile" className="rounded-xl border border-border bg-gradient-to-br from-slate-100 to-slate-200 p-4 transition hover:shadow-md dark:from-slate-900 dark:to-slate-800">
-              <p className="text-sm font-semibold text-foreground">Profile</p>
+              <UserCircle2 className="h-5 w-5 text-slate-700" />
+              <p className="mt-2 text-sm font-semibold text-foreground">Profile</p>
               <p className="mt-1 text-xs text-muted-foreground">Reset account password.</p>
             </Link>
           </div>
@@ -1481,7 +1492,7 @@ function LecturerDashboardInner() {
                     <td>{s.registration_number}</td>
                     <td>{s.email}</td>
                     <td><StatusBadge value={s.session_status} /></td>
-                    <td>{s.score ?? "-"}</td>
+                    <td>{s.score != null ? `${s.score}/${s.total_marks}` : "-"}</td>
                     <td>{s.warning_count}</td>
                   </tr>
                 ))}
@@ -1751,7 +1762,7 @@ function LecturerDashboardInner() {
                     <td>{row.course_code}</td>
                     <td>{row.exam_title}</td>
                     <td><StatusBadge value={row.session_status} /></td>
-                    <td>{row.score ?? "-"}</td>
+                    <td>{row.score != null ? `${row.score}/${row.total_marks}` : "-"}</td>
                     <td>{row.warning_count}</td>
                     <td><StatusBadge value={row.risk_level} /></td>
                     <td>
@@ -1987,7 +1998,9 @@ function LecturerDashboardInner() {
 
           <div className="mt-3 grid grid-cols-3 gap-2">
             <div className="rounded-md border border-border bg-background p-3 text-center">
-              <p className="text-xl font-semibold text-foreground">{viewingReport.score ?? "-"}</p>
+              <p className="text-xl font-semibold text-foreground">
+                {viewingReport.score != null ? `${viewingReport.score}/${viewingReport.total_marks}` : "-"}
+              </p>
               <p className="text-xs text-muted-foreground">Score</p>
             </div>
             <div className="rounded-md border border-border bg-background p-3 text-center">
@@ -2007,6 +2020,7 @@ function LecturerDashboardInner() {
               { label: "Tab Switch", value: viewingReport.tab_switch_count },
               { label: "Face Absent", value: viewingReport.face_absent_count },
               { label: "Multiple Faces", value: viewingReport.multiple_faces_count },
+              { label: "Identity Mismatch", value: viewingReport.identity_mismatch_count },
             ].map((stat) => (
               <div key={stat.label} className="rounded-md border border-border bg-background p-3 text-center">
                 <p className="text-xl font-semibold text-foreground">{stat.value}</p>
@@ -2041,6 +2055,7 @@ function LecturerDashboardInner() {
                     course_code: viewingReport.exam.course_code,
                     session_status: viewingReport.session_status || "active",
                     score: viewingReport.score ?? null,
+                    total_marks: viewingReport.total_marks,
                     warning_count: viewingReport.warning_count ?? 0,
                     risk_level: viewingReport.risk_level,
                   }
